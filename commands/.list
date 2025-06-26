@@ -1,0 +1,12 @@
+case '.list':
+  let listText = '👽 *AlienCule Bot Command List*\n\n'
+
+  for (const [category, cmds] of Object.entries(categorizedCommands)) {
+    listText += `*${category}:*\n${cmds.map(cmd => `• ${cmd}`).join('\n')}\n\n`
+  }
+
+  listText += `🔗 Stay Updated: *BLAUGRANA WAVES*\nhttps://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z\n\n`
+  listText += `👾⚡️ 𝐂𝐫𝐞𝐚𝐭𝐞𝐝 𝐛𝐲 𝘈𝘭𝘪𝘦𝘯 𝐂𝘶𝘭𝐞 👽🌌`
+
+  await sock.sendMessage(from, { text: listText }, { quoted: msg })
+  break

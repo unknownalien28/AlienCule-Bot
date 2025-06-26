@@ -1,0 +1,22 @@
+{
+  "name": "AlienCule-Bot",
+  "version": "1.0.0",
+  "description": "A Whatsapp Bot Created With Love For Barcelona By Alien Cule",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@neeraj-x0/ytsearch": "^1.0.0",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "axios": "^1.10.0",
+    "baileys": "^6.7.18",
+    "gtts": "^0.2.1",
+    "lowdb": "^7.0.1",
+    "ytdl-core": "^4.11.5"
+  }
+}

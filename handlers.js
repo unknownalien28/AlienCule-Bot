@@ -4,31 +4,44 @@ import fs from 'fs'
 import dotenv from 'dotenv'
 dotenv.config()
 
-const FOOTER = process.env.FOOTER || '👽 Created by AlienCule'
-const CHANNEL_NAME = process.env.CHANNEL_NAME || 'Blaugrana Waves'
+const FOOTER = process.env.FOOTER || '👾⚡️ 𝐂𝐫𝐞𝐚𝐭𝐞𝐝 𝐛𝐲 𝘈𝘭𝘪𝘦𝘯 𝐂𝘶𝘭𝘦 👽🌌'
+const CHANNEL_NAME = process.env.CHANNEL_NAME || 'BLAUGRANA WAVES'
 const CHANNEL_LINK = process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z'
+const OWNER_NUMBER = process.env.OWNER_NUMBER || '2348100236360'
+
+const mainMenu = `
+👾 AlienCule Bot Main Menu 👾
+
+• .help / .menu — Show this menu
+• .list — Show all commands
+• .about — About the bot
+
+🛠 Group Admin: .kick, .add, .promote, .demote, .tagall, .mute, .unmute
+🎵 Download: .ytmp3, .tiktok, .ig, .fb, .play
+🤖 AI & Fun: .ai, .img, .gptvoice
+
+More in .list — Enjoy!
+`;
 
 export async function handleMessage(sock, msg) {
   try {
-    // Get message content, group/DM info
     const from = msg.key.remoteJid
     const isGroup = from.endsWith('@g.us')
     const sender = isGroup ? msg.key.participant : from
 
-    // Get plain text content
+    // Plain text extraction
     let content = ''
     if (msg.message?.conversation) {
       content = msg.message.conversation
     } else if (msg.message?.extendedTextMessage?.text) {
       content = msg.message.extendedTextMessage.text
     }
-
     if (!content) return
 
     const command = content.trim().split(/ +/).shift().toLowerCase()
     const args = content.trim().split(/ +/).slice(1)
 
-    // React to command
+    // Emoji react for all commands
     await sock.sendMessage(from, {
       react: {
         text: '👽',
@@ -36,25 +49,48 @@ export async function handleMessage(sock, msg) {
       }
     })
 
-    // Basic commands
+    // MAIN BUTTON MENU
+    if (command === '.help' || command === '.menu') {
+      await sock.sendMessage(from, {
+        text: mainMenu,
+        footer: FOOTER,
+        buttons: [
+          {
+            buttonId: '.list',
+            buttonText: { displayText: '📜 Show All Commands' },
+            type: 1
+          },
+          {
+            buttonId: CHANNEL_LINK,
+            buttonText: { displayText: '🔵🔴 𝐉𝐨𝐢𝐧 𝐁𝐋𝐀𝐔𝐆𝐑𝐀𝐍𝐀 𝐖𝐀𝐕𝐄𝐒' },
+            type: 1
+          },
+          {
+            buttonId: `https://wa.me/${OWNER_NUMBER}`,
+            buttonText: { displayText: '📞 𝐂𝐨𝐧𝐭𝐚𝐜𝐭 𝐀𝐥𝐢𝐞𝐧 𝐂𝐮𝐥𝐞' },
+            type: 1
+          }
+        ],
+        headerType: 1
+      }, { quoted: msg })
+      return
+    }
+
+    // Example: Ping command
     if (command === '.ping') {
       await sock.sendMessage(from, {
         text: `👽 Pong! Bot is alive.\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
       }, { quoted: msg })
+      return
     }
 
-    if (command === '.help') {
-      await sock.sendMessage(from, {
-        text: `${helpMenu}\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
-      }, { quoted: msg })
-    }
-
-    // Save status command
+    // Example: Save status command
     if (command === '.save') {
       await saveStatus(sock, msg, from)
+      return
     }
 
-    // Add more commands here!
+    // Add more commands below this line!
 
   } catch (e) {
     console.error('❌ Handler error:', e)
@@ -77,7 +113,6 @@ async function saveStatus(sock, msg, from) {
       }, { quoted: msg })
     }
 
-    // Download and save
     const stream = await downloadContentFromMessage(quoted[type], type === 'videoMessage' ? 'video' : 'image')
     const filename = `saved_status/status_${Date.now()}.${type === 'videoMessage' ? 'mp4' : 'jpg'}`
     const buffer = []
@@ -86,22 +121,12 @@ async function saveStatus(sock, msg, from) {
     fs.writeFileSync(filename, Buffer.concat(buffer))
 
     await sock.sendMessage(from, {
-      text: `👽 Status saved as *${filename}*.\n\n🔗 *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
+      text: `✅ Status saved as ${filename}\n\n${FOOTER}`
     }, { quoted: msg })
   } catch (e) {
-    console.error('❌ Saving status failed:', e)
     await sock.sendMessage(from, {
-      text: `👽 Error saving status.\n\n${FOOTER}`
+      text: `❌ Failed to save status.\n\n${FOOTER}`
     }, { quoted: msg })
+    console.error('SaveStatus error:', e)
   }
 }
-
-const helpMenu = `👽 *AlienCule Bot Commands*
-
-🛠️ *Basic:*
-• .ping - Check bot status
-• .help - Show command list
-• .save - Save a replied WhatsApp Status
-
-⚡ More commands coming soon!
-`

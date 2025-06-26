@@ -1,64 +1,56 @@
-import pkg from '@whiskeysockets/baileys';
-const { makeWASocket, useSingleFileAuthState, DisconnectReason } = pkg;
-import { Boom } from '@hapi/boom';
-import 'dotenv/config';
-import * as fs from 'fs';
+import pkg from '@whiskeysockets/baileys'
+import { Boom } from '@hapi/boom'
+import dotenv from 'dotenv'
+dotenv.config()
 
-// Use a consistent auth state filename
-const AUTH_FILE = './auth_info.json';
-const { state, saveState } = useSingleFileAuthState(AUTH_FILE);
+const {
+    makeWASocket,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion,
+    DisconnectReason
+} = pkg
 
-async function startSock() {
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
-    // Add any other Baileys config options here (logger, browser, etc.)
-  });
+async function startBot() {
+    // New Baileys v6+ auth system
+    const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
+    const { version } = await fetchLatestBaileysVersion()
 
-  // Save updated credentials
-  sock.ev.on('creds.update', saveState);
+    const sock = makeWASocket({
+        version,
+        auth: state,
+        printQRInTerminal: true,
+        // You can add logger or browser options here if needed
+    })
 
-  // Connection update/reconnect logic
-  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
-    if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect?.error instanceof Boom)
-          ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
-          : true;
+    sock.ev.on('creds.update', saveCreds)
 
-      console.log('⛔ Connection closed.');
-      if (shouldReconnect) {
-        console.log('🔁 Attempting to reconnect...');
-        startSock();
-      } else {
-        console.log('🚪 Logged out. Please delete auth_info.json and restart the bot to re-authenticate.');
-      }
-    } else if (connection === 'open') {
-      console.log('✅ Connected to WhatsApp');
-    }
-  });
+    sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+        if (connection === 'close') {
+            const shouldReconnect =
+                (lastDisconnect?.error instanceof Boom)
+                    ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
+                    : true
 
-  // Dynamic handler import for hot reloading and flexibility
-  sock.ev.on('messages.upsert', async ({ messages }) => {
-    const msg = messages[0];
-    if (!msg.message) return;
-    try {
-      // Dynamically import handler for each new message (hot reload)
-      const { handleMessage } = await import('./handlers.js');
-      await handleMessage(sock, msg);
-    } catch (err) {
-      console.error('❌ Error handling message:', err);
-    }
-  });
+            if (shouldReconnect) {
+                console.log('Connection closed. Reconnecting...')
+                startBot()
+            } else {
+                console.log('You are logged out. Delete the auth_info folder and scan again.')
+            }
+        } else if (connection === 'open') {
+            console.log('✅ Connected to WhatsApp')
+        }
+    })
 
-  // Optional: handle unexpected errors globally
-  process.on('unhandledRejection', err => {
-    console.error('❗ Unhandled Promise Rejection:', err);
-  });
-  process.on('uncaughtException', err => {
-    console.error('❗ Uncaught Exception:', err);
-  });
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        const msg = messages[0]
+        if (!msg.message) return
+        // Simple reply to every message
+        if (msg.key && !msg.key.fromMe) {
+            await sock.sendMessage(msg.key.remoteJid, { text: 'Hello from AlienCule-Bot! 👽' }, { quoted: msg })
+        }
+    })
 }
 
 // Start the bot
-startSock();
+startBot()

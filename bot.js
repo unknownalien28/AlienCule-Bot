@@ -1,5 +1,6 @@
 import pkg from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
+import * as qrcode from 'qrcode-terminal'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -11,7 +12,6 @@ const {
 } = pkg
 
 async function startBot() {
-    // New Baileys v6+ auth system
     const { state, saveCreds } = await useMultiFileAuthState('./auth_info')
     const { version } = await fetchLatestBaileysVersion()
 
@@ -19,18 +19,20 @@ async function startBot() {
         version,
         auth: state,
         printQRInTerminal: true,
-        // You can add logger or browser options here if needed
     })
 
     sock.ev.on('creds.update', saveCreds)
 
-    sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+    sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+        if (qr) {
+            console.log('\n📲 Scan the QR below to connect:')
+            qrcode.generate(qr, { small: true })
+        }
         if (connection === 'close') {
             const shouldReconnect =
                 (lastDisconnect?.error instanceof Boom)
                     ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
                     : true
-
             if (shouldReconnect) {
                 console.log('Connection closed. Reconnecting...')
                 startBot()
@@ -52,5 +54,4 @@ async function startBot() {
     })
 }
 
-// Start the bot
 startBot()

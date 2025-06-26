@@ -4,6 +4,9 @@ import fs from 'fs'
 import dotenv from 'dotenv'
 dotenv.config()
 
+// Import your list command (make sure the path is correct)
+import listCommand from './commands/list.js'
+
 const FOOTER = process.env.FOOTER || '👾⚡️ 𝐂𝐫𝐞𝐚𝐭𝐞𝐝 𝐛𝐲 𝘈𝘭𝘪𝘦𝘯 𝐂𝘶𝘭𝘦 👽🌌'
 const CHANNEL_NAME = process.env.CHANNEL_NAME || 'BLAUGRANA WAVES'
 const CHANNEL_LINK = process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z'
@@ -23,19 +26,90 @@ const mainMenu = `
 More in .list — Enjoy!
 `;
 
+// Button handler
+async function handleButton(sock, msg, buttonId, from) {
+  switch (buttonId) {
+    case 'aliencule_channel':
+      await sock.sendMessage(from, {
+        text: '🔵 *BLAUGRANA WAVES CHANNEL*:\nhttps://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z'
+      }, { quoted: msg });
+      break;
+    case 'owner_contact':
+      await sock.sendMessage(from, {
+        text: '💬 *Contact Owner:*\nwa.me/2348100236360 (Alien Cule 👽)'
+      }, { quoted: msg });
+      break;
+    default:
+      await sock.sendMessage(from, {
+        text: '❓ Unknown button action.'
+      }, { quoted: msg });
+  }
+}
+
+// Command handler
+async function handleCommand(sock, msg, command, args, from) {
+  switch (command) {
+    case '.help':
+    case '.menu':
+      await sock.sendMessage(from, {
+        text: mainMenu,
+        footer: FOOTER,
+        buttons: [
+          {
+            buttonId: '.list',
+            buttonText: { displayText: '📜 Show All Commands' },
+            type: 1
+          },
+          {
+            buttonId: 'aliencule_channel',
+            buttonText: { displayText: '🔵 Join BLAUGRANA WAVES' },
+            type: 1
+          },
+          {
+            buttonId: 'owner_contact',
+            buttonText: { displayText: '💬 Contact AlienCule' },
+            type: 1
+          }
+        ],
+        headerType: 1
+      }, { quoted: msg });
+      break;
+    case '.list':
+      await listCommand.execute(sock, msg, args, from);
+      break;
+    case '.ping':
+      await sock.sendMessage(from, {
+        text: `👽 Pong! Bot is alive.\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
+      }, { quoted: msg });
+      break;
+    case '.save':
+      await saveStatus(sock, msg, from);
+      break;
+    default:
+      await sock.sendMessage(from, {
+        text: '❓ Unknown command. Try *.list* or *.help*.'
+      }, { quoted: msg });
+  }
+}
+
+// Main handler
 export async function handleMessage(sock, msg) {
   try {
     const from = msg.key.remoteJid
     const isGroup = from.endsWith('@g.us')
     const sender = isGroup ? msg.key.participant : from
 
-    // Plain text extraction
-    let content = ''
-    if (msg.message?.conversation) {
-      content = msg.message.conversation
-    } else if (msg.message?.extendedTextMessage?.text) {
-      content = msg.message.extendedTextMessage.text
+    // Detect button press
+    if (msg.message?.buttonsResponseMessage) {
+      const buttonId = msg.message.buttonsResponseMessage.selectedButtonId
+      await handleButton(sock, msg, buttonId, from)
+      return
     }
+
+    // Extract plain text
+    let content = ''
+    if (msg.message?.conversation) content = msg.message.conversation
+    else if (msg.message?.extendedTextMessage?.text) content = msg.message.extendedTextMessage.text
     if (!content) return
 
     const command = content.trim().split(/ +/).shift().toLowerCase()
@@ -49,54 +123,16 @@ export async function handleMessage(sock, msg) {
       }
     })
 
-    // MAIN BUTTON MENU
-    if (command === '.help' || command === '.menu') {
-      await sock.sendMessage(from, {
-        text: mainMenu,
-        footer: FOOTER,
-        buttons: [
-          {
-            buttonId: '.list',
-            buttonText: { displayText: '📜 Show All Commands' },
-            type: 1
-          },
-          {
-            buttonId: CHANNEL_LINK,
-            buttonText: { displayText: '🔵🔴 𝐉𝐨𝐢𝐧 𝐁𝐋𝐀𝐔𝐆𝐑𝐀𝐍𝐀 𝐖𝐀𝐕𝐄𝐒' },
-            type: 1
-          },
-          {
-            buttonId: `https://wa.me/${OWNER_NUMBER}`,
-            buttonText: { displayText: '📞 𝐂𝐨𝐧𝐭𝐚𝐜𝐭 𝐀𝐥𝐢𝐞𝐧 𝐂𝐮𝐥𝐞' },
-            type: 1
-          }
-        ],
-        headerType: 1
-      }, { quoted: msg })
-      return
+    // Only handle messages starting with "."
+    if (command.startsWith('.')) {
+      await handleCommand(sock, msg, command, args, from)
     }
-
-    // Example: Ping command
-    if (command === '.ping') {
-      await sock.sendMessage(from, {
-        text: `👽 Pong! Bot is alive.\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
-      }, { quoted: msg })
-      return
-    }
-
-    // Example: Save status command
-    if (command === '.save') {
-      await saveStatus(sock, msg, from)
-      return
-    }
-
-    // Add more commands below this line!
-
   } catch (e) {
     console.error('❌ Handler error:', e)
   }
 }
 
+// Status saver (kept as in your original)
 async function saveStatus(sock, msg, from) {
   try {
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage

@@ -1,5 +1,4 @@
-import baileys from '@whiskeysockets/baileys'
-const { default: makeWASocket, useSingleFileAuthState, DisconnectReason } = baileys
+import { makeWASocket, useSingleFileAuthState, DisconnectReason } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import 'dotenv/config'
 import * as fs from 'fs'

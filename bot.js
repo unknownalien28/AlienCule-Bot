@@ -1,34 +1,40 @@
-import makeWASocket, { useSingleFileAuthState, DisconnectReason } from '@whiskeysockets/baileys'
+
+import makeWASocket, {
+  useSingleFileAuthState,
+  DisconnectReason
+} from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import * as fs from 'fs'
-import * as path from 'path'
 import { handleMessage } from './handlers.js'
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config()
 
 const { state, saveState } = useSingleFileAuthState('./auth.json')
 
 async function startSock() {
   const sock = makeWASocket({
-    auth: state
+    auth: state,
+    printQRInTerminal: true
   })
 
   sock.ev.on('creds.update', saveState)
+
+  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+    if (connection === 'close') {
+      const shouldReconnect =
+        (lastDisconnect?.error instanceof Boom &&
+          lastDisconnect.error.output?.statusCode !== DisconnectReason.loggedOut)
+      console.log(`👽 Connection closed. Reconnecting: ${shouldReconnect}`)
+      if (shouldReconnect) startSock()
+    } else if (connection === 'open') {
+      console.log('✅ Bot connected to WhatsApp!')
+    }
+  })
 
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0]
     if (!msg.message) return
     await handleMessage(sock, msg)
-  })
-
-  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
-    if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
-      if (shouldReconnect) {
-        startSock()
-      }
-    } else if (connection === 'open') {
-      console.log('👽 Bot connected.')
-    }
   })
 }
 

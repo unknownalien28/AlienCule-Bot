@@ -1,11 +1,12 @@
-import { downloadContentFromMessage, proto } from '@whiskeysockets/baileys'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 import fs from 'fs'
-import { logCommand } from './lib/logger.js'
 import dotenv from 'dotenv'
-
 dotenv.config()
 
-const FOOTER = process.env.FOOTER || '👾⚡️ 𝐂𝐫𝐞𝐚𝐭𝐞𝐝 𝐛𝐲 𝘈𝘭𝘪𝘦𝘯 𝐂𝘶𝘭𝘦 👽🌌'
+// Load environment variables
+const FOOTER = process.env.FOOTER || '👽 Created by Alien Cule'
+const CHANNEL_NAME = process.env.CHANNEL_NAME || 'Blaugrana Waves'
+const CHANNEL_LINK = process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z'
 
 export async function handleMessage(sock, msg) {
   try {
@@ -21,30 +22,35 @@ export async function handleMessage(sock, msg) {
     const command = content.trim().split(/ +/).shift().toLowerCase()
     const args = content.trim().split(/ +/).slice(1)
 
-    // 👽 React to all commands
-    await sock.sendMessage(from, { react: { text: '👽', key: msg.key } })
+    // React to valid commands
+    await sock.sendMessage(from, {
+      react: {
+        text: '👽',
+        key: msg.key
+      }
+    })
 
-    // 📥 Log command usage
-    logCommand(command, sender, from)
-
-    // ⬇️ Command Switch
     switch (command) {
       case '.ping':
-        await sock.sendMessage(from, { text: `👽 Pong! I'm alive.\n\n${FOOTER}` }, { quoted: msg })
+        await sock.sendMessage(from, {
+          text: `👽 Pong! Bot is alive.\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
+        }, { quoted: msg })
         break
 
       case '.help':
-        await sock.sendMessage(from, { text: helpMenu }, { quoted: msg })
+        await sock.sendMessage(from, {
+          text: `${helpMenu}\n\n🔗 Stay updated: *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
+        }, { quoted: msg })
         break
 
       case '.save':
         await saveStatus(sock, msg, from)
         break
 
-      // 🔧 Add more cases here...
+      // Add more commands here
 
       default:
-        // Unknown command
+        // Unknown commands can be ignored or logged
         break
     }
   } catch (e) {
@@ -57,7 +63,7 @@ async function saveStatus(sock, msg, from) {
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage
     if (!quoted) {
       return sock.sendMessage(from, {
-        text: `👽 Reply to a view-once image or video with *.save* to download it.\n\n${FOOTER}`
+        text: `👽 Reply to a status with .save to download it.\n\n🔗 *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
       }, { quoted: msg })
     }
 
@@ -68,26 +74,22 @@ async function saveStatus(sock, msg, from) {
     for await (const chunk of stream) buffer.push(chunk)
     fs.writeFileSync(filename, Buffer.concat(buffer))
     await sock.sendMessage(from, {
-      text: `👽 Status saved as *${filename}*\n\n${FOOTER}`
+      text: `👽 Status saved as *${filename}*.\n\n🔗 *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
     }, { quoted: msg })
   } catch (e) {
     console.error('❌ Failed to save status:', e)
-    await sock.sendMessage(from, { text: '👽 Error saving status.\n\n' + FOOTER }, { quoted: msg })
+    await sock.sendMessage(from, {
+      text: `👽 Error saving status.\n\n🔗 *${CHANNEL_NAME}*\n${CHANNEL_LINK}\n\n${FOOTER}`
+    }, { quoted: msg })
   }
 }
 
-// 🧾 Main Help Menu
-const helpMenu = `
-👽 *BLAUGRANA BOT MENU*
+const helpMenu = `👽 *AlienCule Bot Commands*
 
-🛠️ *Bot Commands:*
+🛠️ *Basic:*
 • .ping - Check bot status
-• .help - Show this help menu
-• .save - Save a view-once or replied status
+• .help - Show command list
+• .save - Save a replied WhatsApp Status
 
-📡 *Channel:*
-📍 BLAUGRANA WAVES  
-🔗 ${process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029Vb5t5EaEwEjnvkk6Yb1Z'}
-
-${FOOTER}
+⚡ More commands coming soon!
 `

@@ -1,0 +1,8 @@
+node_modules/
+auth_info.json
+auth.json
+.env
+saved_status/
+tmp/
+temp/
+.DS_Store
